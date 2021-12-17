@@ -6,3 +6,9 @@ version = "0.1.0"
 fastrand = "*"
 gnuplot = "*"
 ndarray = "*"
+serde_yaml = "*"
+structopt = "*"
+
+[dependencies.serde]
+features = ["derive"]
+version = "1.0"

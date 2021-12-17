@@ -1,10 +1,14 @@
 use ndarray::Array2;
 use std::f64::consts;
+use std::path::{Path, PathBuf};
+use std::fs::File;
+use serde::Deserialize;
+use structopt::StructOpt;
 
+mod check_connection;
 mod plotter;
 mod point;
 mod rand_utils;
-mod check_connection;
 use point::Point;
 
 pub trait Localizable {
@@ -52,7 +56,7 @@ impl CommulativeAcceptProbability {
     }
 }
 
-fn get_initial_point(size: usize, cap: &mut CommulativeAcceptProbability) -> Point {
+fn get_initial_point(size: f64, cap: &mut CommulativeAcceptProbability) -> Point {
     loop {
         let point = Point::random_point(size);
         let prob = cap.get_probabiliy(&point);
@@ -76,7 +80,7 @@ fn get_initial_direction(initial: &Point) -> f64 {
 }
 
 fn make_random_stations(
-    map_size: usize,
+    map_size: f64,
     avg_dist: f64,
     cap: &mut CommulativeAcceptProbability,
 ) -> Vec<Point> {
@@ -121,7 +125,7 @@ impl CollectPoints {
         let output = self.build_line_adj();
         self.build_collapse_adj(output, dist)
     }
-    
+
     fn build_collapse_adj(&mut self, mut mat: Array2<f64>, dist: f64) -> Array2<f64> {
         let near = self.collapse_stations(dist);
         for (s1, s2) in near.collapse_station.into_iter() {
@@ -223,19 +227,42 @@ impl NearStationFind {
     }
 }
 
-fn main() {
+#[derive(Deserialize)]
+struct Config {
+    map_size: f64,
+    scale: f64,
+    min_dist: f64,
+    line_count: usize,
+    station_avg_distance: f64,
+    collapse_station_distance: f64
+}
+
+
+#[derive(StructOpt)]
+struct Arguments {
+    config: PathBuf
+}
+
+fn load_config(file_path: &Path) -> Result<Config, Box<dyn std::error::Error>> {
+    let file = File::open(file_path)?;
+    let config = serde_yaml::from_reader(file)?;
+    Ok(config)
+}
+
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let args = Arguments::from_args();
+    let config = load_config(&args.config)?;
     let mut fig = plotter::PlotFigure::new();
     let mut plot = fig.make_plotter();
-    let map_size = 1000;
+    let map_size = config.map_size;
     let mut collect = CollectPoints::default();
-    let mut cap = CommulativeAcceptProbability::new(map_size as f64, 100., 450.);
-    for _ in 0..4 {
-        let points = make_random_stations(map_size, 250., &mut cap);
+    let mut cap = CommulativeAcceptProbability::new(map_size, config.scale, config.min_dist);
+    for _ in 0..config.line_count {
+        let points = make_random_stations(map_size, config.station_avg_distance, &mut cap);
         collect.collect(points);
     }
 
-  
-    let adj_mat = collect.build_adjacent_matrix(150.);
+    let adj_mat = collect.build_adjacent_matrix(config.collapse_station_distance);
 
     for line in collect.line_iter() {
         plot.draw_points(line, None);
@@ -245,7 +272,8 @@ fn main() {
         println!("Network is not connected");
     }
 
-
     plot.draw_lines(&collect.points, &adj_mat);
     fig.show();
+
+    Ok(())
 }

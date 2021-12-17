@@ -7,8 +7,7 @@ pub struct Point {
 }
 
 impl Point {
-    pub fn random_point(sz: usize) -> Self {
-        let sz = sz as f64;
+    pub fn random_point(sz: f64) -> Self {
         let x = random_in(2. * sz);
         let y = random_in(2. * sz);
 
@@ -38,8 +37,7 @@ impl Point {
         }
     }
 
-    pub fn is_inside(&self, map_size: usize) -> bool {
-        let map_size = map_size as f64;
+    pub fn is_inside(&self, map_size: f64) -> bool {
         self.x.abs() < map_size && self.y.abs() < map_size
     }
 
@@ -48,7 +46,7 @@ impl Point {
         let (x2, y2) = other.coordinates();
         let x = (x1 + x2) / 2.;
         let y = (y1 + y2) / 2.;
-        Self {x, y}
+        Self { x, y }
     }
 }
 
