@@ -1,0 +1,8 @@
+[package]
+edition = "2021"
+name = "random_metro_network"
+version = "0.1.0"
+[dependencies]
+fastrand = "*"
+gnuplot = "*"
+ndarray = "*"
