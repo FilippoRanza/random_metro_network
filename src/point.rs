@@ -42,6 +42,14 @@ impl Point {
         let map_size = map_size as f64;
         self.x.abs() < map_size && self.y.abs() < map_size
     }
+
+    pub fn find_middle(&self, other: &Self) -> Self {
+        let (x1, y1) = self.coordinates();
+        let (x2, y2) = other.coordinates();
+        let x = (x1 + x2) / 2.;
+        let y = (y1 + y2) / 2.;
+        Self {x, y}
+    }
 }
 
 impl Localizable for Point {

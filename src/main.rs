@@ -116,7 +116,7 @@ impl CollectPoints {
             .map(|(a, b)| ((a, b), &self.points[a..b]))
     }
 
-    fn build_adjacent_matrix(&self, dist: f64) -> Array2<f64> {
+    fn build_adjacent_matrix(&self) -> Array2<f64> {
         let mut output = Array2::from_elem((self.points.len(), self.points.len()), f64::MAX);
         for (b, e) in &self.lines {
             let mut prev: Option<(usize, &Point)> = None;
@@ -131,10 +131,18 @@ impl CollectPoints {
                 prev = Some((i, p));
             }
         }
-        self.all_cross_line_iter(|line_a, line_b| {
-            add_close_point_arcs(line_a, line_b, dist, dist, &mut output)
-        });
+
         output
+    }
+
+    fn collapse_stations(&mut self, dist: f64) {
+        let mut find_near = NearStationFind::new();
+        self.all_cross_line_iter(|a, b| find_near.find_near(a, b, dist));
+        for (s1, s2) in find_near.collapse_station.into_iter() {
+            let new_point = self.points[s1].find_middle(&self.points[s2]);
+            self.points[s1] = new_point;
+            self.points[s2] = new_point;
+        }
     }
 
     fn all_cross_line_iter<F>(&self, mut f: F)
@@ -171,6 +179,35 @@ fn add_close_point_arcs(
     }
 }
 
+#[derive(Default)]
+struct NearStationFind {
+    collapse_station: Vec<(usize, usize)>,
+}
+impl NearStationFind {
+    fn new() -> Self {
+        Default::default()
+    }
+
+    fn find_near(
+        &mut self,
+        line_a: ((usize, usize), &[Point]),
+        line_b: ((usize, usize), &[Point]),
+        d: f64,
+    ) {
+        let ((ba, _), line_a) = line_a;
+        let ((bb, _), line_b) = line_b;
+
+        for (i, a) in line_a.iter().enumerate() {
+            for (j, b) in line_b.iter().enumerate() {
+                let dist = a.distance(b);
+                if dist < d {
+                    self.collapse_station.push((ba + i, bb + j));
+                }
+            }
+        }
+    }
+}
+
 fn main() {
     let mut fig = plotter::PlotFigure::new();
     let mut plot = fig.make_plotter();
@@ -182,12 +219,14 @@ fn main() {
         collect.collect(points);
     }
 
+    collect.collapse_stations(150.);
+
     for line in collect.line_iter() {
         plot.draw_points(line, None);
     }
 
-    let adj_mat = collect.build_adjacent_matrix(150.);
-
+    let adj_mat = collect.build_adjacent_matrix();
+    
     plot.draw_lines(&collect.points, &adj_mat);
     fig.show();
 }
