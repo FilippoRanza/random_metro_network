@@ -4,6 +4,7 @@ use std::f64::consts;
 mod plotter;
 mod point;
 mod rand_utils;
+mod check_connection;
 use point::Point;
 
 pub trait Localizable {
@@ -116,7 +117,21 @@ impl CollectPoints {
             .map(|(a, b)| ((a, b), &self.points[a..b]))
     }
 
-    fn build_adjacent_matrix(&self) -> Array2<f64> {
+    fn build_adjacent_matrix(&mut self, dist: f64) -> Array2<f64> {
+        let output = self.build_line_adj();
+        self.build_collapse_adj(output, dist)
+    }
+    
+    fn build_collapse_adj(&mut self, mut mat: Array2<f64>, dist: f64) -> Array2<f64> {
+        let near = self.collapse_stations(dist);
+        for (s1, s2) in near.collapse_station.into_iter() {
+            mat[(s1, s2)] = 0.;
+            mat[(s2, s1)] = 0.;
+        }
+        mat
+    }
+
+    fn build_line_adj(&self) -> Array2<f64> {
         let mut output = Array2::from_elem((self.points.len(), self.points.len()), f64::MAX);
         for (b, e) in &self.lines {
             let mut prev: Option<(usize, &Point)> = None;
@@ -131,18 +146,18 @@ impl CollectPoints {
                 prev = Some((i, p));
             }
         }
-
         output
     }
 
-    fn collapse_stations(&mut self, dist: f64) {
+    fn collapse_stations(&mut self, dist: f64) -> NearStationFind {
         let mut find_near = NearStationFind::new();
         self.all_cross_line_iter(|a, b| find_near.find_near(a, b, dist));
-        for (s1, s2) in find_near.collapse_station.into_iter() {
-            let new_point = self.points[s1].find_middle(&self.points[s2]);
-            self.points[s1] = new_point;
-            self.points[s2] = new_point;
+        for (s1, s2) in &find_near.collapse_station {
+            let new_point = self.points[*s1].find_middle(&self.points[*s2]);
+            self.points[*s1] = new_point;
+            self.points[*s2] = new_point;
         }
+        find_near
     }
 
     fn all_cross_line_iter<F>(&self, mut f: F)
@@ -219,14 +234,18 @@ fn main() {
         collect.collect(points);
     }
 
-    collect.collapse_stations(150.);
+  
+    let adj_mat = collect.build_adjacent_matrix(150.);
 
     for line in collect.line_iter() {
         plot.draw_points(line, None);
     }
 
-    let adj_mat = collect.build_adjacent_matrix();
-    
+    if !check_connection::is_connected(&adj_mat) {
+        println!("Network is not connected");
+    }
+
+
     plot.draw_lines(&collect.points, &adj_mat);
     fig.show();
 }
