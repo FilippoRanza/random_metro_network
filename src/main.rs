@@ -3,6 +3,7 @@ use std::f64::consts;
 
 mod plotter;
 mod point;
+mod rand_utils;
 use point::Point;
 
 pub trait Localizable {
@@ -54,7 +55,7 @@ fn get_initial_point(size: usize, cap: &mut CommulativeAcceptProbability) -> Poi
     loop {
         let point = Point::random_point(size);
         let prob = cap.get_probabiliy(&point);
-        if prob > fastrand::f64() {
+        if prob > rand_utils::rand_f64() {
             cap.add_point(point);
             return point;
         }
@@ -63,7 +64,7 @@ fn get_initial_point(size: usize, cap: &mut CommulativeAcceptProbability) -> Poi
 
 fn get_initial_direction(initial: &Point) -> f64 {
     let (x, y) = initial.coordinates();
-    let angle = fastrand::f64() * consts::FRAC_PI_2;
+    let angle = rand_utils::random_below(consts::FRAC_PI_2);
     angle
         + match (x.is_sign_positive(), y.is_sign_positive()) {
             (false, false) => 0.,
@@ -83,7 +84,7 @@ fn make_random_stations(
     let mut output = vec![];
     while initial.is_inside(map_size) {
         output.push(initial);
-        let noise = (fastrand::f64() - 0.5) * consts::FRAC_PI_8;
+        let noise = rand_utils::random_in(consts::FRAC_PI_8);
         direction += noise;
         initial = initial.translate(avg_dist, direction);
     }

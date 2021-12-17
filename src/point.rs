@@ -1,5 +1,5 @@
+use super::rand_utils::random_in;
 use super::Localizable;
-
 #[derive(Copy, Clone, Debug)]
 pub struct Point {
     x: f64,
@@ -9,8 +9,8 @@ pub struct Point {
 impl Point {
     pub fn random_point(sz: usize) -> Self {
         let sz = sz as f64;
-        let x = (fastrand::f64() - 0.5) * 2. * sz;
-        let y = (fastrand::f64() - 0.5) * 2. * sz;
+        let x = random_in(2. * sz);
+        let y = random_in(2. * sz);
 
         Self { x, y }
     }
