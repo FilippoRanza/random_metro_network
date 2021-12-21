@@ -1,8 +1,8 @@
 use ndarray::Array2;
-use std::f64::consts;
-use std::path::{Path, PathBuf};
-use std::fs::File;
 use serde::Deserialize;
+use std::f64::consts;
+use std::fs::File;
+use std::path::{Path, PathBuf};
 use structopt::StructOpt;
 
 mod check_connection;
@@ -128,7 +128,7 @@ impl CollectPoints {
 
     fn build_collapse_adj(&mut self, mut mat: Array2<f64>, dist: f64) -> Array2<f64> {
         let near = self.collapse_stations(dist);
-        for (s1, s2) in near.collapse_station.into_iter() {
+        for (s1, s2) in near.collapse_station{
             mat[(s1, s2)] = 0.;
             mat[(s2, s1)] = 0.;
         }
@@ -192,7 +192,7 @@ fn add_close_point_arcs(
             if dist < d1 || dist < d2 {
                 let (i, j) = (ba + i, bb + j);
                 mat[(i, j)] = dist;
-                mat[(j, i)] = dist
+                mat[(j, i)] = dist;
             }
         }
     }
@@ -204,7 +204,7 @@ struct NearStationFind {
 }
 impl NearStationFind {
     fn new() -> Self {
-        Default::default()
+        Self::default()
     }
 
     fn find_near(
@@ -234,13 +234,12 @@ struct Config {
     min_dist: f64,
     line_count: usize,
     station_avg_distance: f64,
-    collapse_station_distance: f64
+    collapse_station_distance: f64,
 }
-
 
 #[derive(StructOpt)]
 struct Arguments {
-    config: PathBuf
+    config: PathBuf,
 }
 
 fn load_config(file_path: &Path) -> Result<Config, Box<dyn std::error::Error>> {
