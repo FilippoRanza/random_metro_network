@@ -82,6 +82,7 @@ fn get_initial_direction(initial: &Point) -> f64 {
 fn make_random_stations(
     map_size: f64,
     avg_dist: f64,
+    var_dist: f64,
     cap: &mut CommulativeAcceptProbability,
 ) -> Vec<Point> {
     let mut initial = get_initial_point(map_size, cap);
@@ -91,7 +92,8 @@ fn make_random_stations(
         output.push(initial);
         let noise = rand_utils::random_in(consts::FRAC_PI_8);
         direction += noise;
-        initial = initial.translate(avg_dist, direction);
+        let dist = rand_utils::rand_normal(avg_dist, var_dist);
+        initial = initial.translate(dist, direction);
     }
 
     output
@@ -128,7 +130,7 @@ impl CollectPoints {
 
     fn build_collapse_adj(&mut self, mut mat: Array2<f64>, dist: f64) -> Array2<f64> {
         let near = self.collapse_stations(dist);
-        for (s1, s2) in near.collapse_station{
+        for (s1, s2) in near.collapse_station {
             mat[(s1, s2)] = 0.;
             mat[(s2, s1)] = 0.;
         }
@@ -234,6 +236,7 @@ struct Config {
     min_dist: f64,
     line_count: usize,
     station_avg_distance: f64,
+    station_var_distance: f64,
     collapse_station_distance: f64,
 }
 
@@ -257,7 +260,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut collect = CollectPoints::default();
     let mut cap = CommulativeAcceptProbability::new(map_size, config.scale, config.min_dist);
     for _ in 0..config.line_count {
-        let points = make_random_stations(map_size, config.station_avg_distance, &mut cap);
+        let points = make_random_stations(
+            map_size,
+            config.station_avg_distance,
+            config.station_var_distance,
+            &mut cap,
+        );
         collect.collect(points);
     }
 

@@ -3,11 +3,12 @@ edition = "2021"
 name = "random_metro_network"
 version = "0.1.0"
 [dependencies]
-fastrand = "*"
 gnuplot = "*"
 ndarray = "*"
 serde_yaml = "*"
 structopt = "*"
+rand = "0.8.4"
+rand_distr = "0.4.2"
 
 [dependencies.serde]
 features = ["derive"]
