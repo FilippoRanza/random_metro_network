@@ -7,6 +7,7 @@ use structopt::StructOpt;
 
 mod check_connection;
 mod intersection;
+mod line_segment_iterator;
 mod plotter;
 mod point;
 mod rand_utils;
