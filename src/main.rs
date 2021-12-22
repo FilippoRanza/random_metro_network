@@ -6,6 +6,7 @@ use std::path::{Path, PathBuf};
 use structopt::StructOpt;
 
 mod check_connection;
+mod intersection;
 mod plotter;
 mod point;
 mod rand_utils;

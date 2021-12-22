@@ -1,5 +1,12 @@
 use super::rand_utils::random_in;
 use super::Localizable;
+
+pub type Coord = (f64, f64);
+
+pub fn coord_to_point(c: Coord) -> Point {
+    Point { x: c.0, y: c.1 }
+}
+
 #[derive(Copy, Clone, Debug)]
 pub struct Point {
     x: f64,
