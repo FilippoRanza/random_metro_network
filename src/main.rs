@@ -281,6 +281,27 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         println!("Network is not connected");
     }
 
+    collect.all_cross_line_iter(|line_a, line_b| {
+        let (_, line_a) = line_a;
+        let (_, line_b) = line_b;
+        for (stat_a1, stat_a2) in line_segment_iterator::LineSegmentItator::new(line_a) {
+            for (stat_b1, stat_b2) in line_segment_iterator::LineSegmentItator::new(line_b) {
+                let stat_a1 = stat_a1.coordinates();
+                let stat_a2 = stat_a2.coordinates();
+                let stat_b1 = stat_b1.coordinates();
+                let stat_b2 = stat_b2.coordinates();
+                let inter = intersection::intersection((stat_a1, stat_a2), (stat_b1, stat_b2));
+                match inter {
+                    intersection::Intersection::Point(pt) => println!(
+                        "intersection at {:?} -- [{:?} -> {:?}], [{:?} -> {:?}]",
+                        pt, stat_a1, stat_a2, stat_b1, stat_b2
+                    ),
+                    _ => {}
+                }
+            }
+        }
+    });
+
     plot.draw_lines(&collect.points, &adj_mat);
     fig.show();
 

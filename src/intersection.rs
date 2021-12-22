@@ -9,16 +9,16 @@ pub enum Intersection {
 }
 
 pub fn intersection(s1: Segment, s2: Segment) -> Intersection {
-    let den = dbg! {denominator(s1, s2)};
+    let den = denominator(s1, s2);
     if is_zero(den) {
         return Intersection::Parallel;
     }
-    let l1 = dbg! {l1_parameter(s1, s2)};
-    if dbg! {is_outside(l1, den)} {
+    let l1 = { l1_parameter(s1, s2) };
+    if is_outside(l1, den) {
         return Intersection::Empty;
     }
     let l2 = l2_parameter(s1, s2);
-    if dbg! {is_outside(l2, den)} {
+    if is_outside(l2, den) {
         return Intersection::Empty;
     }
 

@@ -1,12 +1,12 @@
 use std::slice::Iter;
 
-struct LineSegmentItator<'a, T> {
+pub struct LineSegmentItator<'a, T> {
     line: Iter<'a, T>,
     prev: Option<&'a T>,
 }
 
 impl<'a, T> LineSegmentItator<'a, T> {
-    fn new(line: &'a [T]) -> Self {
+    pub fn new(line: &'a [T]) -> Self {
         let mut line = line.iter();
         let prev = line.next();
         Self { line, prev }
