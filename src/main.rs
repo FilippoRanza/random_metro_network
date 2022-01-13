@@ -58,9 +58,12 @@ fn main() -> MResult<()> {
             let nodes =
                 node_locations::generate_node_lists(inter.direct_intersections, config.lines);
             let network = build_graph::build_graph(&curves, &nodes, &inter.inverse_intersections);
-
-            let mut fig = make_figure::make_figure(&network);
-            fig.show().unwrap();
+            if let Some(network) = network {
+                let mut fig = make_figure::make_figure(&network);
+                fig.show().unwrap();
+            } else {
+                println!("Network is not connectd");
+            }
             break;
         }
     }
