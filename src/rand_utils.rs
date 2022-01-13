@@ -1,20 +1,23 @@
-use rand::prelude::*;
-
-pub fn rand_normal(mu: f64, sigma: f64) -> f64 {
-    let mut rng = thread_rng();
-    let normal = rand_distr::Normal::new(mu, sigma).unwrap();
-    normal.sample(&mut rng)
+pub fn random_in_range(range: (f64, f64)) -> f64 {
+    let (min, max) = range;
+    let delta = max - min;
+    let r = fastrand::f64();
+    (r * delta) + min
 }
 
-pub fn random_in(f: f64) -> f64 {
-    (rand_f64() - 0.5) * f
-}
+#[cfg(test)]
+mod test {
 
-pub fn random_below(a: f64) -> f64 {
-    rand_f64() * a
-}
+    use super::*;
 
-pub fn rand_f64() -> f64 {
-    let mut rng = thread_rng();
-    rng.gen()
+    #[test]
+    fn test_random_in_range() {
+        let min = -5.6;
+        let max = 6.7;
+        let range = (min, max);
+        for _ in 0..10000 {
+            let rnd = random_in_range(range);
+            assert!(rnd >= min && rnd <= max);
+        }
+    }
 }
