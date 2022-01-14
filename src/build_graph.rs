@@ -1,8 +1,9 @@
 use crate::float_table::FloatMatrix;
 use crate::Curve;
 use flo_curves::{BezierCurve, Coordinate};
+use serde::Serialize;
 
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 pub struct Network {
     pub lines: Vec<Vec<usize>>,
     pub points: Vec<(f64, f64)>,
