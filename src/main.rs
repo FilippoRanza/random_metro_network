@@ -32,6 +32,29 @@ struct Configuration {
     origin_distance: f64,
     points_distance: f64,
     lines: Vec<usize>,
+    trials: Option<usize>,
+}
+
+const DEFAULT_TRIALS: usize = 100;
+struct TrialCounter {
+    count: usize,
+}
+
+impl TrialCounter {
+    fn new(count: Option<usize>) -> Self {
+        let count = count.unwrap_or(DEFAULT_TRIALS);
+        Self { count }
+    }
+
+    fn run(&mut self) -> bool {
+        println!("{}", self.count);
+        if self.count > 0 {
+            self.count -= 1;
+            true
+        } else {
+            false
+        }
+    }
 }
 
 fn load_config(f: PathBuf) -> MResult<Configuration> {
@@ -51,8 +74,8 @@ fn main() -> MResult<()> {
         size_y: config.height,
     };
     let mut bezier_points_factory = bezier_point_factory::BezierPointFactory::new(&factory_config);
-
-    loop {
+    let mut trials = TrialCounter::new(config.trials);
+    while trials.run() {
         let curves = make_curves::make_curves(&mut bezier_points_factory, config.lines.len());
         if let Some(inter) = intersections::make_intersection_lists(&curves) {
             let nodes =
@@ -66,6 +89,7 @@ fn main() -> MResult<()> {
             }
             break;
         }
+        bezier_points_factory.reset();
     }
 
     Ok(())

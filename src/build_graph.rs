@@ -88,11 +88,11 @@ fn get_point(c: &Curve, t: f64) -> (f64, f64) {
 
 fn is_connected(net: &Network) -> bool {
     let graph = make_graph(&net.lines, net.points.len());
-    let visited = breadth_first_search(graph);
+    let visited = breadth_first_search(&graph);
     visited.into_iter().all(|b| b)
 }
 
-fn make_graph(lines: &Vec<Vec<usize>>, node_count: usize) -> Vec<Vec<usize>> {
+fn make_graph(lines: &[Vec<usize>], node_count: usize) -> Vec<Vec<usize>> {
     let mut adj_list = vec![vec![]; node_count];
     for line in lines {
         insert_line(line, &mut adj_list);
@@ -111,7 +111,7 @@ fn insert_line(line: &[usize], g: &mut Vec<Vec<usize>>) {
     }
 }
 
-fn breadth_first_search(g: Vec<Vec<usize>>) -> Vec<bool> {
+fn breadth_first_search(g: &[Vec<usize>]) -> Vec<bool> {
     let mut visited = vec![false; g.len()];
     let mut stack: Vec<usize> = vec![0];
     visited[0] = true;
@@ -144,7 +144,7 @@ mod test {
             vec![6],
         ];
         let expected = vec![true; connected_graph.len()];
-        let result = breadth_first_search(connected_graph);
+        let result = breadth_first_search(&connected_graph);
         assert_eq!(expected, result);
 
         let unconnected_graph = vec![
@@ -157,7 +157,7 @@ mod test {
             vec![4, 7],
             vec![6],
         ];
-        let result = breadth_first_search(unconnected_graph);
+        let result = breadth_first_search(&unconnected_graph);
         let expected = vec![true, true, true, true, false, false, false, false];
         assert_eq!(result, expected);
     }

@@ -30,6 +30,10 @@ impl BezierPointFactory {
             ctrl_2,
         }
     }
+
+    pub fn reset(&mut self) {
+        self.orig_factory.reset();
+    }
 }
 
 pub struct BezierPoints {
@@ -93,6 +97,10 @@ impl OriginPointFactory {
         self.points
             .iter()
             .all(|ot| accpet_distance(pt, *ot, self.point_radius))
+    }
+
+    fn reset(&mut self) {
+        self.points.clear();
     }
 }
 
