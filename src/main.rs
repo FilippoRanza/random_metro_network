@@ -35,6 +35,26 @@ struct Configuration {
     trials: Option<usize>,
 }
 
+impl Configuration {
+    fn make_factory_config(&self) -> bezier_point_factory::FactoryConfig {
+        bezier_point_factory::FactoryConfig {
+            center_radius: self.origin_distance,
+            point_radius: self.points_distance,
+            size_x: self.width,
+            size_y: self.height,
+        }
+    }
+
+    fn set_trials(mut self) -> Self {
+        self.trials.get_or_insert(DEFAULT_TRIALS);
+        self
+    }
+
+    fn set_defaults(self) -> Self {
+        self.set_trials()
+    }
+}
+
 const DEFAULT_TRIALS: usize = 100;
 struct TrialCounter {
     count: usize,
@@ -57,6 +77,32 @@ impl TrialCounter {
     }
 }
 
+fn try_build_network(
+    bpf: &mut bezier_point_factory::BezierPointFactory,
+    lines: &[usize],
+) -> Option<build_graph::Network> {
+    let curves = make_curves::make_curves(bpf, lines.len());
+    let inter = intersections::make_intersection_lists(&curves)?;
+    let nodes = node_locations::generate_node_lists(inter.direct_intersections, lines);
+    build_graph::build_graph(&curves, &nodes, &inter.inverse_intersections)
+}
+
+fn build_network(
+    factory_config: &bezier_point_factory::FactoryConfig,
+    trials: Option<usize>,
+    lines: &[usize],
+) -> Option<build_graph::Network> {
+    let mut bezier_points_factory = bezier_point_factory::BezierPointFactory::new(factory_config);
+    let mut trials = TrialCounter::new(trials);
+    while trials.run() {
+        if let Some(output) = try_build_network(&mut bezier_points_factory, lines) {
+            return Some(output);
+        }
+        bezier_points_factory.reset();
+    }
+    None
+}
+
 fn load_config(f: PathBuf) -> MResult<Configuration> {
     let file = File::open(f)?;
     let conf = serde_yaml::from_reader(file)?;
@@ -65,31 +111,17 @@ fn load_config(f: PathBuf) -> MResult<Configuration> {
 
 fn main() -> MResult<()> {
     let args = Arguments::from_args();
-    let config = load_config(args.file)?;
+    let config = load_config(args.file)?.set_defaults();
 
-    let factory_config = bezier_point_factory::FactoryConfig {
-        center_radius: config.origin_distance,
-        point_radius: config.points_distance,
-        size_x: config.width,
-        size_y: config.height,
-    };
-    let mut bezier_points_factory = bezier_point_factory::BezierPointFactory::new(&factory_config);
-    let mut trials = TrialCounter::new(config.trials);
-    while trials.run() {
-        let curves = make_curves::make_curves(&mut bezier_points_factory, config.lines.len());
-        if let Some(inter) = intersections::make_intersection_lists(&curves) {
-            let nodes =
-                node_locations::generate_node_lists(inter.direct_intersections, config.lines);
-            let network = build_graph::build_graph(&curves, &nodes, &inter.inverse_intersections);
-            if let Some(network) = network {
-                let mut fig = make_figure::make_figure(&network);
-                fig.show().unwrap();
-            } else {
-                println!("Network is not connectd");
-            }
-            break;
-        }
-        bezier_points_factory.reset();
+    let factory_config = config.make_factory_config();
+    if let Some(network) = build_network(&factory_config, config.trials, &config.lines) {
+        let mut fig = make_figure::make_figure(&network);
+        fig.show().unwrap();
+    } else {
+        println!(
+            "Error: system did not generate a Connected Random Network in {} trials",
+            config.trials.unwrap()
+        );
     }
 
     Ok(())

@@ -1,8 +1,8 @@
-pub fn generate_node_lists(inters: Vec<Vec<f64>>, counts: Vec<usize>) -> Vec<Vec<f64>> {
+pub fn generate_node_lists(inters: Vec<Vec<f64>>, counts: &[usize]) -> Vec<Vec<f64>> {
     inters
         .into_iter()
-        .zip(counts.into_iter())
-        .map(|(i, c)| generate_node(i, c))
+        .zip(counts)
+        .map(|(i, c)| generate_node(i, *c))
         .collect()
 }
 
