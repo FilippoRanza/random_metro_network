@@ -23,8 +23,6 @@ type MResult<T> = Result<T, Box<dyn std::error::Error>>;
 #[derive(StructOpt)]
 struct Arguments {
     file: PathBuf,
-    #[structopt(default_value = "1")]
-    count: usize,
 }
 
 #[derive(Deserialize)]
@@ -52,6 +50,7 @@ struct PlotInfo {
 }
 
 const DEFAULT_TRIALS: usize = 100;
+const DEFAULT_COUNT: usize = 1;
 
 #[derive(Deserialize)]
 struct Configuration {
@@ -61,6 +60,7 @@ struct Configuration {
     points_distance: f64,
     lines: Vec<usize>,
     trials: Option<usize>,
+    count: Option<usize>,
     save_option: Option<SaveFormat>,
     plot_option: Option<PlotInfo>,
 }
@@ -77,6 +77,7 @@ impl Configuration {
 
     fn set_defaults(mut self) -> Self {
         self.trials.get_or_insert(DEFAULT_TRIALS);
+        self.count.get_or_insert(DEFAULT_COUNT);
         self
     }
 }
@@ -92,7 +93,6 @@ impl TrialCounter {
     }
 
     fn run(&mut self) -> bool {
-        println!("{}", self.count);
         if self.count > 0 {
             self.count -= 1;
             true
@@ -205,7 +205,7 @@ fn main() -> MResult<()> {
     let args = Arguments::from_args();
     let config = load_config(args.file)?.set_defaults();
 
-    for i in 0..args.count {
+    for i in 0..config.count.unwrap() {
         let factory_config = config.make_factory_config();
         if let Some(network) = build_network(&factory_config, config.trials, &config.lines) {
             save_if_required(&network, &config.save_option, i)?;
