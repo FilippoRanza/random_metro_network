@@ -52,6 +52,14 @@ struct PlotInfo {
 const DEFAULT_TRIALS: usize = 100;
 const DEFAULT_COUNT: usize = 1;
 
+fn get_default_trials() -> usize {
+    DEFAULT_TRIALS
+}
+
+fn get_default_count() -> usize {
+    DEFAULT_COUNT
+}
+
 #[derive(Deserialize)]
 struct Configuration {
     width: f64,
@@ -59,8 +67,10 @@ struct Configuration {
     origin_distance: f64,
     points_distance: f64,
     lines: Vec<usize>,
-    trials: Option<usize>,
-    count: Option<usize>,
+    #[serde(default = "get_default_trials")]
+    trials: usize,
+    #[serde(default = "get_default_count")]
+    count: usize,
     save_option: Option<SaveFormat>,
     plot_option: Option<PlotInfo>,
 }
@@ -74,12 +84,6 @@ impl Configuration {
             size_y: self.height,
         }
     }
-
-    fn set_defaults(mut self) -> Self {
-        self.trials.get_or_insert(DEFAULT_TRIALS);
-        self.count.get_or_insert(DEFAULT_COUNT);
-        self
-    }
 }
 
 struct TrialCounter {
@@ -87,8 +91,7 @@ struct TrialCounter {
 }
 
 impl TrialCounter {
-    fn new(count: Option<usize>) -> Self {
-        let count = count.unwrap_or(DEFAULT_TRIALS);
+    fn new(count: usize) -> Self {
         Self { count }
     }
 
@@ -114,7 +117,7 @@ fn try_build_network(
 
 fn build_network(
     factory_config: &bezier_point_factory::FactoryConfig,
-    trials: Option<usize>,
+    trials: usize,
     lines: &[usize],
 ) -> Option<build_graph::Network> {
     let mut bezier_points_factory = bezier_point_factory::BezierPointFactory::new(factory_config);
@@ -201,21 +204,29 @@ fn plot_if_required(
     Ok(())
 }
 
+fn build_random_instance(config: &Configuration, id: usize) -> MResult<()> {
+    let factory_config = config.make_factory_config();
+
+    if let Some(network) = build_network(&factory_config, config.trials, &config.lines) {
+        save_if_required(&network, &config.save_option, id)?;
+        plot_if_required(&network, &config.plot_option, id)?;
+    } else {
+        println!(
+            "Error: system did not generate a Connected Random Network in {} trials",
+            config.trials
+        );
+    }
+
+    Ok(())
+}
+
 fn main() -> MResult<()> {
     let args = Arguments::from_args();
-    let config = load_config(args.file)?.set_defaults();
+    let config = load_config(args.file)?;
 
-    for i in 0..config.count.unwrap() {
-        let factory_config = config.make_factory_config();
-        if let Some(network) = build_network(&factory_config, config.trials, &config.lines) {
-            save_if_required(&network, &config.save_option, i)?;
-            plot_if_required(&network, &config.plot_option, i)?;
-        } else {
-            println!(
-                "Error: system did not generate a Connected Random Network in {} trials",
-                config.trials.unwrap()
-            );
-        }
+    
+    for i in 0..config.count {
+        build_random_instance(&config, i)?;
     }
 
     Ok(())
