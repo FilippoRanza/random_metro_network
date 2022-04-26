@@ -9,6 +9,8 @@ use std::path::PathBuf;
 
 type Curve = bezier::Curve<Coord2>;
 
+use petgraph::dot;
+
 mod bezier_point_factory;
 mod build_graph;
 mod float_table;
@@ -208,6 +210,7 @@ fn build_random_instance(config: &Configuration, id: usize) -> MResult<()> {
     let factory_config = config.make_factory_config();
 
     if let Some(network) = build_network(&factory_config, config.trials, &config.lines) {
+        println!("{:?}", dot::Dot::new(&network.graph));
         save_if_required(&network, &config.save_option, id)?;
         plot_if_required(&network, &config.plot_option, id)?;
     } else {
@@ -224,7 +227,6 @@ fn main() -> MResult<()> {
     let args = Arguments::from_args();
     let config = load_config(args.file)?;
 
-    
     for i in 0..config.count {
         build_random_instance(&config, i)?;
     }

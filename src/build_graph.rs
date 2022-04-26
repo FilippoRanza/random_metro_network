@@ -1,13 +1,17 @@
 use crate::float_table::FloatMatrix;
 use crate::Curve;
 use flo_curves::{BezierCurve, Coordinate};
+use petgraph::{algo, graph};
 use serde::Serialize;
 
 #[derive(Debug, Serialize)]
 pub struct Network {
     pub lines: Vec<Vec<usize>>,
     pub points: Vec<(f64, f64)>,
+    pub graph: NetGraph,
 }
+
+pub type NetGraph = graph::UnGraph<usize, f64>;
 
 pub fn build_graph(
     curves: &[Curve],
@@ -23,33 +27,33 @@ pub fn build_graph(
             lines[i].push(idx);
         }
     }
-
-    let net = Network {
-        lines,
-        points: point_factory.points,
-    };
-    if is_connected(&net) {
-        Some(net)
+    let points = point_factory.points;
+    if let Some(graph) = is_connected(&points, &lines) {
+        Some(Network {
+            lines,
+            points,
+            graph,
+        })
     } else {
         None
     }
 }
 
 fn get_point_index(
-    id: usize,
+    line_id: usize,
     c: &Curve,
     t: f64,
     factory: &mut PointListFactory,
     intersections: &FloatMatrix<(usize, f64)>,
 ) -> usize {
-    if let Some((j, tj)) = intersections.get(id, t) {
+    if let Some((j, tj)) = intersections.get(line_id, t) {
         if let Some(idx) = factory.get_index_for_intersection(*j, *tj) {
             idx
         } else {
-            factory.add_point(id, c, t)
+            factory.add_point(line_id, c, t)
         }
     } else {
-        factory.add_point(id, c, t)
+        factory.add_point(line_id, c, t)
     }
 }
 
@@ -87,44 +91,88 @@ fn get_point(c: &Curve, t: f64) -> (f64, f64) {
     (p.get(0), p.get(1))
 }
 
-fn is_connected(net: &Network) -> bool {
-    let graph = make_graph(&net.lines, net.points.len());
-    let visited = breadth_first_search(&graph);
-    visited.into_iter().all(|b| b)
-}
-
-fn make_graph(lines: &[Vec<usize>], node_count: usize) -> Vec<Vec<usize>> {
-    let mut adj_list = vec![vec![]; node_count];
-    for line in lines {
-        insert_line(line, &mut adj_list);
+fn is_connected(pts: &[Pt], lines: &[Vec<usize>]) -> Option<NetGraph> {
+    let graph = line_to_graph(pts, lines);
+    let conn_comps = dbg! {algo::connected_components(&graph)};
+    if conn_comps == 1 {
+        Some(add_arc_weights(graph, pts))
+    } else {
+        None
     }
-    adj_list
 }
 
-fn insert_line(line: &[usize], g: &mut Vec<Vec<usize>>) {
-    let mut prev: Option<usize> = None;
-    for n in line {
-        if let Some(prev) = prev {
-            g[*n].push(prev);
-            g[prev].push(*n);
+fn line_to_graph(pts: &[Pt], lines: &[Vec<usize>]) -> NetGraph {
+    let net_graph = lines.iter().fold(init_graph(pts, lines), add_line_to_graph);
+    net_graph
+}
+
+fn init_graph(pts: &[Pt], lines: &[Vec<usize>]) -> NetGraph {
+    let nodes = pts.len();
+    let arcs = arc_count(lines);
+    NetGraph::with_capacity(nodes, arcs)
+}
+
+fn add_line_to_graph(mut net_graph: NetGraph, line: &Vec<usize>) -> NetGraph {
+    net_graph.extend_with_edges(SuccessorIterator::new(line).map(|(a, b)| (*a as u32, *b as u32)));
+    net_graph
+}
+
+fn arc_count(lines: &[Vec<usize>]) -> usize {
+    lines.iter().map(|l| l.len() - 1).sum()
+}
+
+fn add_arc_weights(mut net_graph: NetGraph, pts: &[Pt]) -> NetGraph {
+    for edge in net_graph.edge_indices() {
+        if let Some((a, b)) = net_graph.edge_endpoints(edge) {
+            let i = a.index();
+            let j = b.index();
+            let d = distance(pts, i, j);
+            *net_graph.edge_weight_mut(edge).unwrap() = d;
         }
-        prev = Some(*n);
+    }
+
+    for (id, node_w) in net_graph.node_weights_mut().enumerate() {
+        *node_w = id;
+    } 
+
+    net_graph
+}
+
+fn distance(pts: &[Pt], i: usize, j: usize) -> f64 {
+    let (x1, y1) = pts[i];
+    let (x2, y2) = pts[j];
+    let dx = x1 - x2;
+    let dy = y1 - y2;
+    ((dx * dx) + (dy * dy)).sqrt()
+}
+
+struct SuccessorIterator<'a, T> {
+    prev: Option<&'a T>,
+    iter: std::slice::Iter<'a, T>,
+}
+
+impl<'a, T> SuccessorIterator<'a, T> {
+    fn new(coll: &'a [T]) -> Self {
+        Self {
+            prev: None,
+            iter: coll.iter(),
+        }
     }
 }
 
-fn breadth_first_search(g: &[Vec<usize>]) -> Vec<bool> {
-    let mut visited = vec![false; g.len()];
-    let mut stack: Vec<usize> = vec![0];
-    visited[0] = true;
-    while let Some(curr) = stack.pop() {
-        for next in &g[curr] {
-            if !visited[*next] {
-                visited[*next] = true;
-                stack.push(*next);
-            }
-        }
+impl<'a, T> Iterator for SuccessorIterator<'a, T> {
+    type Item = (&'a T, &'a T);
+    fn next(&mut self) -> Option<Self::Item> {
+        let prev = if let Some(prev) = self.prev {
+            prev
+        } else {
+            self.iter.next()?
+        };
+        let curr = self.iter.next()?;
+        let output = (prev, curr);
+        self.prev = Some(curr);
+        Some(output)
     }
-    visited
 }
 
 #[cfg(test)]
@@ -133,56 +181,16 @@ mod test {
     use super::*;
 
     #[test]
-    fn test_bfs() {
-        let connected_graph = vec![
-            vec![1],
-            vec![2, 3, 4],
-            vec![1, 3],
-            vec![1, 2],
-            vec![5, 6],
-            vec![4],
-            vec![4, 7],
-            vec![6],
-        ];
-        let expected = vec![true; connected_graph.len()];
-        let result = breadth_first_search(&connected_graph);
-        assert_eq!(expected, result);
-
-        let unconnected_graph = vec![
-            vec![1],
-            vec![2, 3],
-            vec![1, 3],
-            vec![1, 2],
-            vec![5, 6],
-            vec![4],
-            vec![4, 7],
-            vec![6],
-        ];
-        let result = breadth_first_search(&unconnected_graph);
-        let expected = vec![true, true, true, true, false, false, false, false];
-        assert_eq!(result, expected);
-    }
-
-    #[test]
-    fn test_line_to_graph() {
-        let lines = vec![vec![0, 1, 2, 3, 4], vec![5, 6, 1, 7]];
-        let graph = make_graph(&lines, 8);
-        let correct = vec![
-            vec![1],
-            vec![0, 2, 6, 7],
-            vec![1, 3],
-            vec![2, 4],
-            vec![3],
-            vec![6],
-            vec![5, 1],
-            vec![1],
-        ];
-        assert_eq!(correct, graph);
+    fn test_successor_iterator() {
+        let vect = [1, 2, 3, 4, 5, 6];
+        let result: Vec<(&usize, &usize)> = SuccessorIterator::new(&vect).collect();
+        let expected = vec![(&1, &2), (&2, &3), (&3, &4), (&4, &5), (&5, &6)];
+        assert_eq!(result, expected)
     }
 
     #[test]
     fn test_check_connection() {
-        let connect_net = lines_to_net(
+        let (pts, lines) = lines_to_net(
             vec![
                 vec![0, 1, 2, 3, 4, 5],
                 vec![4, 6, 7, 2, 8],
@@ -191,9 +199,9 @@ mod test {
             ],
             15,
         );
-        assert!(is_connected(&connect_net));
+        assert!(is_connected(&pts, &lines).is_some());
 
-        let not_connect_net = lines_to_net(
+        let (pts, lines) = lines_to_net(
             vec![
                 vec![0, 1, 2, 3, 4, 5],
                 vec![4, 6, 7, 2, 8],
@@ -202,13 +210,10 @@ mod test {
             ],
             16,
         );
-        assert!(!is_connected(&not_connect_net));
+        assert!(is_connected(&pts, &lines).is_none());
     }
 
-    fn lines_to_net(lines: Vec<Vec<usize>>, count: usize) -> Network {
-        Network {
-            lines,
-            points: vec![(0., 0.); count],
-        }
+    fn lines_to_net(lines: Vec<Vec<usize>>, count: usize) -> (Vec<Pt>, Vec<Vec<usize>>) {
+        (vec![(0., 0.); count], lines)
     }
 }
