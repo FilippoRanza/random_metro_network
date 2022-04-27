@@ -1,108 +1,18 @@
-use crate::float_table::FloatMatrix;
-use crate::Curve;
-use flo_curves::{BezierCurve, Coordinate};
-use petgraph::{algo, graph};
-use serde::Serialize;
+use petgraph::algo;
 
-#[derive(Debug, Serialize)]
-pub struct Network {
-    pub lines: Vec<Vec<usize>>,
-    pub points: Vec<(f64, f64)>,
-    pub graph: NetGraph,
-}
+use super::{point_factory::PointListFactory, Lines, NetGraph, Network, Pt};
 
-pub type NetGraph = graph::UnGraph<usize, f64>;
-type Lines = Vec<Vec<usize>>;
 
-fn new_lines(line_count: usize) -> Lines {
-    vec![vec![]; line_count]
-}
 
-pub fn build_network(
-    curves: &[Curve],
-    nodes: &[Vec<f64>],
-    intersections: &FloatMatrix<(usize, f64)>,
-) -> Option<Network> {
-    let (point_factory, lines) = build_lines(curves, nodes, intersections);
-    build_graph(point_factory, lines)
-}
 
-fn build_graph(pts: PointListFactory, lines: Lines) -> Option<Network> {
-    let points = pts.points;
+
+pub fn build_graph(pts: PointListFactory, lines: Lines) -> Option<Network> {
+    let points = pts.get_points();
     is_connected(&points, &lines).map(|graph| Network {
         lines,
         points,
         graph,
     })
-}
-
-fn build_lines(
-    curves: &[Curve],
-    nodes: &[Vec<f64>],
-    intersections: &FloatMatrix<(usize, f64)>,
-) -> (PointListFactory, Lines) {
-    let mut lines = new_lines(curves.len());
-    let mut point_factory = PointListFactory::new(curves.len());
-
-    for (i, (c, n)) in curves.iter().zip(nodes.iter()).enumerate() {
-        for t in n {
-            let idx = get_point_index(i, c, *t, &mut point_factory, intersections);
-            lines[i].push(idx);
-        }
-    }
-    (point_factory, lines)
-}
-
-fn get_point_index(
-    line_id: usize,
-    c: &Curve,
-    t: f64,
-    factory: &mut PointListFactory,
-    intersections: &FloatMatrix<(usize, f64)>,
-) -> usize {
-    if let Some((j, tj)) = intersections.get(line_id, t) {
-        if let Some(idx) = factory.get_index_for_intersection(*j, *tj) {
-            idx
-        } else {
-            factory.add_point(line_id, c, t)
-        }
-    } else {
-        factory.add_point(line_id, c, t)
-    }
-}
-
-type Pt = (f64, f64);
-
-struct PointListFactory {
-    points: Vec<Pt>,
-    inter_table: FloatMatrix<usize>,
-}
-
-impl PointListFactory {
-    fn new(lines: usize) -> Self {
-        let inter_table = FloatMatrix::new(lines);
-        Self {
-            points: vec![],
-            inter_table,
-        }
-    }
-
-    fn add_point(&mut self, id: usize, c: &Curve, t: f64) -> usize {
-        let curr = self.points.len();
-        let pt = get_point(c, t);
-        self.points.push(pt);
-        self.inter_table.insert(id, t, curr);
-        curr
-    }
-
-    fn get_index_for_intersection(&self, id: usize, t: f64) -> Option<usize> {
-        self.inter_table.get(id, t).copied()
-    }
-}
-
-fn get_point(c: &Curve, t: f64) -> (f64, f64) {
-    let p = c.point_at_pos(t);
-    (p.get(0), p.get(1))
 }
 
 fn is_connected(pts: &[Pt], lines: &[Vec<usize>]) -> Option<NetGraph> {
