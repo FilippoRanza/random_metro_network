@@ -1,6 +1,8 @@
 use flo_curves::bezier;
 use flo_curves::Coord2;
 
+use petgraph::dot;
+
 use serde::{Deserialize, Serialize};
 use structopt::StructOpt;
 
@@ -8,8 +10,6 @@ use std::fs::File;
 use std::path::PathBuf;
 
 type Curve = bezier::Curve<Coord2>;
-
-use petgraph::dot;
 
 mod bezier_point_factory;
 mod build_graph;
@@ -103,7 +103,7 @@ fn try_build_network(
     let curves = make_curves::make_curves(bpf, lines.len());
     let inter = intersections::make_intersection_lists(&curves)?;
     let nodes = node_locations::generate_node_lists(inter.direct_intersections, lines);
-    build_graph::build_graph(&curves, &nodes, &inter.inverse_intersections)
+    build_graph::build_network(&curves, &nodes, &inter.inverse_intersections)
 }
 
 fn build_network(

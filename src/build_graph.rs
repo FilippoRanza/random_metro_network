@@ -12,13 +12,36 @@ pub struct Network {
 }
 
 pub type NetGraph = graph::UnGraph<usize, f64>;
+type Lines = Vec<Vec<usize>>;
 
-pub fn build_graph(
+fn new_lines(line_count: usize) -> Lines {
+    vec![vec![]; line_count]
+}
+
+pub fn build_network(
     curves: &[Curve],
     nodes: &[Vec<f64>],
     intersections: &FloatMatrix<(usize, f64)>,
 ) -> Option<Network> {
-    let mut lines = vec![vec![]; curves.len()];
+    let (point_factory, lines) = build_lines(curves, nodes, intersections);
+    build_graph(point_factory, lines)
+}
+
+fn build_graph(pts: PointListFactory, lines: Lines) -> Option<Network> {
+    let points = pts.points;
+    is_connected(&points, &lines).map(|graph| Network {
+        lines,
+        points,
+        graph,
+    })
+}
+
+fn build_lines(
+    curves: &[Curve],
+    nodes: &[Vec<f64>],
+    intersections: &FloatMatrix<(usize, f64)>,
+) -> (PointListFactory, Lines) {
+    let mut lines = new_lines(curves.len());
     let mut point_factory = PointListFactory::new(curves.len());
 
     for (i, (c, n)) in curves.iter().zip(nodes.iter()).enumerate() {
@@ -27,12 +50,7 @@ pub fn build_graph(
             lines[i].push(idx);
         }
     }
-    let points = point_factory.points;
-    is_connected(&points, &lines).map(|graph| Network {
-        lines,
-        points,
-        graph,
-    })
+    (point_factory, lines)
 }
 
 fn get_point_index(
