@@ -2,10 +2,6 @@ use petgraph::algo;
 
 use super::{point_factory::PointListFactory, Lines, NetGraph, Network, Pt};
 
-
-
-
-
 pub fn build_graph(pts: PointListFactory, lines: Lines) -> Option<Network> {
     let points = pts.get_points();
     is_connected(&points, &lines).map(|graph| Network {

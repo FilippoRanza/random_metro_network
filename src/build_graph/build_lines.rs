@@ -1,9 +1,8 @@
-
-use crate::Curve;
 use crate::float_table::FloatMatrix;
+use crate::Curve;
 
-use super::{Lines, point_factory::PointListFactory};
-use super::{new_lines};
+use super::new_lines;
+use super::{point_factory::PointListFactory, Lines};
 
 pub fn build_lines(
     curves: &[Curve],
@@ -39,4 +38,3 @@ fn get_point_index(
         factory.add_point(line_id, c, t)
     }
 }
-

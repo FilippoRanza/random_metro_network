@@ -1,13 +1,12 @@
 use petgraph::graph;
 use serde::Serialize;
 
-use crate::Curve;
 use crate::float_table::FloatMatrix;
+use crate::Curve;
 
-mod lines_to_petgraph;
 mod build_lines;
+mod lines_to_petgraph;
 mod point_factory;
-
 
 #[derive(Debug, Serialize)]
 pub struct Network {
@@ -20,11 +19,9 @@ pub type NetGraph = graph::UnGraph<usize, f64>;
 type Lines = Vec<Vec<usize>>;
 type Pt = (f64, f64);
 
-
 fn new_lines(line_count: usize) -> Lines {
     vec![vec![]; line_count]
 }
-
 
 pub fn build_network(
     curves: &[Curve],
@@ -33,6 +30,4 @@ pub fn build_network(
 ) -> Option<Network> {
     let (point_factory, lines) = build_lines::build_lines(curves, nodes, intersections);
     lines_to_petgraph::build_graph(point_factory, lines)
-
 }
-

@@ -3,7 +3,6 @@ use crate::float_table::FloatMatrix;
 use crate::Curve;
 use flo_curves::{BezierCurve, Coordinate};
 
-
 pub struct PointListFactory {
     points: Vec<Pt>,
     inter_table: FloatMatrix<usize>,
@@ -35,9 +34,7 @@ impl PointListFactory {
     }
 }
 
-
 fn get_point(c: &Curve, t: f64) -> (f64, f64) {
     let p = c.point_at_pos(t);
     (p.get(0), p.get(1))
 }
-
