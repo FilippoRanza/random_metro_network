@@ -3,3 +3,4 @@ Cargo.lock
 *.yml
 *.json
 *.pdf
+*.dot

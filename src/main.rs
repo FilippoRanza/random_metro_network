@@ -6,6 +6,7 @@ use petgraph::dot;
 use serde::{Deserialize, Serialize};
 use structopt::StructOpt;
 
+use std::io::Write;
 use std::fs::File;
 use std::path::PathBuf;
 
@@ -13,6 +14,7 @@ type Curve = bezier::Curve<Coord2>;
 
 mod bezier_point_factory;
 mod build_graph;
+// mod export_graph;
 mod float_table;
 mod intersections;
 mod make_curves;
@@ -33,13 +35,7 @@ enum SaveFormat {
     #[serde(rename = "json")]
     SaveJson(String),
 }
-#[derive(Deserialize)]
-enum PlotFormat {
-    #[serde(rename = "eps")]
-    PlotEps,
-    #[serde(rename = "png")]
-    PlotPng,
-}
+
 
 const DEFAULT_TRIALS: usize = 100;
 const DEFAULT_COUNT: usize = 1;
@@ -64,6 +60,7 @@ struct Configuration {
     #[serde(default = "get_default_count")]
     count: usize,
     save_option: Option<SaveFormat>,
+    export_graph: Option<String>
 }
 
 impl Configuration {
@@ -128,12 +125,16 @@ fn load_config(f: PathBuf) -> MResult<Configuration> {
     Ok(conf)
 }
 
+fn mk_file_name(base: &str, id: usize, ext: &str) -> String {
+    format!("{base}-{id}.{ext}")
+}
+
 fn serialize<T: Serialize, E, F>(base: &str, id: usize, ext: &str, t: &T, f: F) -> MResult<()>
 where
     F: Fn(File, &T) -> Result<(), E>,
     E: std::error::Error + 'static,
 {
-    let file_name = format!("{base}-{id}.{ext}");
+    let file_name = mk_file_name(base, id, ext);
     let file = File::create(file_name)?;
     f(file, t)?;
     Ok(())
@@ -153,12 +154,22 @@ fn save_if_required(
     Ok(())
 }
 
+fn export_if_required(net: &build_graph::Network, base_name: &Option<String>, id: usize) -> MResult<()> {
+    if let Some(base_name) = &base_name {
+        let file_name = mk_file_name(base_name, id, "dot");    
+        let mut file = File::create(file_name)?;
+        write!(file, "{}", dot::Dot::new(&net.graph))?;
+    }
+
+    Ok(())
+}
+
 fn build_random_instance(config: &Configuration, id: usize) -> MResult<()> {
     let factory_config = config.make_factory_config();
 
     if let Some(network) = build_network(&factory_config, config.trials, &config.lines) {
-        println!("{:?}", dot::Dot::new(&network.graph));
-        save_if_required(&network, &config.save_option, id)?;
+        save_if_required(&network, &config.save_option, id)?; 
+        export_if_required(&network, &config.export_graph, id)?;
     } else {
         println!(
             "Error: system did not generate a Connected Random Network in {} trials",

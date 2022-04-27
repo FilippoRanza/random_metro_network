@@ -10,14 +10,14 @@ mod point_factory;
 
 #[derive(Debug, Serialize)]
 pub struct Network {
-    pub lines: Vec<Vec<usize>>,
-    pub points: Vec<(f64, f64)>,
+    pub lines: Lines,
+    pub points: Vec<Pt>,
     pub graph: NetGraph,
 }
 
 pub type NetGraph = graph::UnGraph<usize, f64>;
-type Lines = Vec<Vec<usize>>;
-type Pt = (f64, f64);
+pub type Lines = Vec<Vec<usize>>;
+pub type Pt = (f64, f64);
 
 fn new_lines(line_count: usize) -> Lines {
     vec![vec![]; line_count]
