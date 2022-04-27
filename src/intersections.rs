@@ -34,7 +34,7 @@ fn find_all_intersections(curves: &[Curve]) -> Intersections {
 
 type IndexCurve<'a> = (usize, &'a Curve);
 fn push_intersections<'a>(
-    direct_intersections: &mut Vec<Vec<f64>>,
+    direct_intersections: &mut [Vec<f64>],
     inverse_intersections: &mut FloatMatrix<(usize, f64)>,
     c1: IndexCurve<'a>,
     c2: IndexCurve<'a>,

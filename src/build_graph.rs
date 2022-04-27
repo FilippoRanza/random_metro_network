@@ -28,15 +28,11 @@ pub fn build_graph(
         }
     }
     let points = point_factory.points;
-    if let Some(graph) = is_connected(&points, &lines) {
-        Some(Network {
-            lines,
-            points,
-            graph,
-        })
-    } else {
-        None
-    }
+    is_connected(&points, &lines).map(|graph| Network {
+        lines,
+        points,
+        graph,
+    })
 }
 
 fn get_point_index(
@@ -102,7 +98,9 @@ fn is_connected(pts: &[Pt], lines: &[Vec<usize>]) -> Option<NetGraph> {
 }
 
 fn line_to_graph(pts: &[Pt], lines: &[Vec<usize>]) -> NetGraph {
-    let net_graph = lines.iter().fold(init_graph(pts, lines), add_line_to_graph);
+    let net_graph = lines.iter().fold(init_graph(pts, lines), |graph, line| {
+        add_line_to_graph(graph, line)
+    });
     net_graph
 }
 
@@ -112,7 +110,7 @@ fn init_graph(pts: &[Pt], lines: &[Vec<usize>]) -> NetGraph {
     NetGraph::with_capacity(nodes, arcs)
 }
 
-fn add_line_to_graph(mut net_graph: NetGraph, line: &Vec<usize>) -> NetGraph {
+fn add_line_to_graph(mut net_graph: NetGraph, line: &[usize]) -> NetGraph {
     net_graph.extend_with_edges(SuccessorIterator::new(line).map(|(a, b)| (*a as u32, *b as u32)));
     net_graph
 }
@@ -133,7 +131,7 @@ fn add_arc_weights(mut net_graph: NetGraph, pts: &[Pt]) -> NetGraph {
 
     for (id, node_w) in net_graph.node_weights_mut().enumerate() {
         *node_w = id;
-    } 
+    }
 
     net_graph
 }

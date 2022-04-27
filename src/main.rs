@@ -153,8 +153,6 @@ fn save_if_required(
     Ok(())
 }
 
-
-
 fn build_random_instance(config: &Configuration, id: usize) -> MResult<()> {
     let factory_config = config.make_factory_config();
 
