@@ -6,20 +6,20 @@ use petgraph::dot;
 use serde::{Deserialize, Serialize};
 use structopt::StructOpt;
 
-use std::io::Write;
 use std::fs::File;
+use std::io::Write;
 use std::path::PathBuf;
 
 type Curve = bezier::Curve<Coord2>;
 
 mod bezier_point_factory;
 mod build_graph;
-// mod export_graph;
 mod float_table;
 mod intersections;
 mod make_curves;
 mod node_locations;
 mod rand_utils;
+mod station_wait_times;
 
 type MResult<T> = Result<T, Box<dyn std::error::Error>>;
 
@@ -35,7 +35,6 @@ enum SaveFormat {
     #[serde(rename = "json")]
     SaveJson(String),
 }
-
 
 const DEFAULT_TRIALS: usize = 100;
 const DEFAULT_COUNT: usize = 1;
@@ -60,7 +59,8 @@ struct Configuration {
     #[serde(default = "get_default_count")]
     count: usize,
     save_option: Option<SaveFormat>,
-    export_graph: Option<String>
+    export_graph: Option<String>,
+    station_wait: Option<station_wait_times::StationWaitTimeConfig>,
 }
 
 impl Configuration {
@@ -154,9 +154,13 @@ fn save_if_required(
     Ok(())
 }
 
-fn export_if_required(net: &build_graph::Network, base_name: &Option<String>, id: usize) -> MResult<()> {
+fn export_if_required(
+    net: &build_graph::Network,
+    base_name: &Option<String>,
+    id: usize,
+) -> MResult<()> {
     if let Some(base_name) = &base_name {
-        let file_name = mk_file_name(base_name, id, "dot");    
+        let file_name = mk_file_name(base_name, id, "dot");
         let mut file = File::create(file_name)?;
         write!(file, "{}", dot::Dot::new(&net.graph))?;
     }
@@ -164,11 +168,22 @@ fn export_if_required(net: &build_graph::Network, base_name: &Option<String>, id
     Ok(())
 }
 
+fn apply_station_wait_if_required(
+    net: build_graph::Network,
+    conf: &Option<station_wait_times::StationWaitTimeConfig>,
+) -> MResult<build_graph::Network> {
+    match conf {
+        Some(conf) => station_wait_times::add_wait_time(net, conf),
+        None => Ok(net),
+    }
+}
+
 fn build_random_instance(config: &Configuration, id: usize) -> MResult<()> {
     let factory_config = config.make_factory_config();
 
     if let Some(network) = build_network(&factory_config, config.trials, &config.lines) {
-        save_if_required(&network, &config.save_option, id)?; 
+        let network = apply_station_wait_if_required(network, &config.station_wait)?;
+        save_if_required(&network, &config.save_option, id)?;
         export_if_required(&network, &config.export_graph, id)?;
     } else {
         println!(

@@ -15,7 +15,7 @@ pub struct Network {
     pub graph: NetGraph,
 }
 
-pub type NetGraph = graph::UnGraph<usize, f64>;
+pub type NetGraph = graph::UnGraph<f64, f64>;
 pub type Lines = Vec<Vec<usize>>;
 pub type Pt = (f64, f64);
 

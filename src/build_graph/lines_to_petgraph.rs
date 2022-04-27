@@ -13,7 +13,7 @@ pub fn build_graph(pts: PointListFactory, lines: Lines) -> Option<Network> {
 
 fn is_connected(pts: &[Pt], lines: &[Vec<usize>]) -> Option<NetGraph> {
     let graph = line_to_graph(pts, lines);
-    let conn_comps = dbg! {algo::connected_components(&graph)};
+    let conn_comps = algo::connected_components(&graph);
     if conn_comps == 1 {
         Some(add_arc_weights(graph, pts))
     } else {
@@ -51,10 +51,6 @@ fn add_arc_weights(mut net_graph: NetGraph, pts: &[Pt]) -> NetGraph {
             let d = distance(pts, i, j);
             *net_graph.edge_weight_mut(edge).unwrap() = d;
         }
-    }
-
-    for (id, node_w) in net_graph.node_weights_mut().enumerate() {
-        *node_w = id;
     }
 
     net_graph
