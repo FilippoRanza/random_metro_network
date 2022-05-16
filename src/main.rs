@@ -12,6 +12,7 @@ use std::path::PathBuf;
 
 type Curve = bezier::Curve<Coord2>;
 
+mod all_direct_path;
 mod bezier_point_factory;
 mod build_graph;
 mod float_table;
