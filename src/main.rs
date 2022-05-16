@@ -62,6 +62,7 @@ struct Configuration {
     save_option: Option<SaveFormat>,
     export_graph: Option<String>,
     station_wait: Option<station_wait_times::StationWaitTimeConfig>,
+    all_direct_path: Option<bool>,
 }
 
 impl Configuration {
@@ -179,11 +180,24 @@ fn apply_station_wait_if_required(
     }
 }
 
+fn apply_all_direct_path_is_required(
+    net: build_graph::Network,
+    conf: &Option<bool>,
+) -> build_graph::Network {
+    let conf = conf.unwrap_or(false);
+    if conf {
+        all_direct_path::all_direct_path(net)
+    } else {
+        net
+    }
+}
+
 fn build_random_instance(config: &Configuration, id: usize) -> MResult<()> {
     let factory_config = config.make_factory_config();
 
     if let Some(network) = build_network(&factory_config, config.trials, &config.lines) {
         let network = apply_station_wait_if_required(network, &config.station_wait)?;
+        let network = apply_all_direct_path_is_required(network, &config.all_direct_path);
         save_if_required(&network, &config.save_option, id)?;
         export_if_required(&network, &config.export_graph, id)?;
     } else {

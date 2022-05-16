@@ -1,7 +1,6 @@
 use super::build_graph::{NetGraph, Network};
 use super::MResult;
 use rand::prelude::*;
-use rand_distr;
 use serde::Deserialize;
 use simplegraph::Graph;
 

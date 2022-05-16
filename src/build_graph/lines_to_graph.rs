@@ -22,15 +22,14 @@ fn is_connected(pts: &[Pt], lines: &[Vec<usize>]) -> Option<NetGraph> {
 }
 
 fn line_to_graph(pts: &[Pt], lines: &[Vec<usize>]) -> NetGraph {
-    let net_graph = lines.iter().fold(init_graph(pts, lines), |graph, line| {
+    let net_graph = lines.iter().fold(init_graph(pts), |graph, line| {
         add_line_to_graph(graph, line)
     });
     net_graph
 }
 
-fn init_graph(pts: &[Pt], lines: &[Vec<usize>]) -> NetGraph {
+fn init_graph(pts: &[Pt]) -> NetGraph {
     let nodes = pts.len();
-    // let arcs = arc_count(lines);
     NetGraph::new_undirect(nodes)
 }
 
@@ -39,10 +38,6 @@ fn add_line_to_graph(mut net_graph: NetGraph, line: &[usize]) -> NetGraph {
         net_graph.add_new_default_arc(a, b);
     }
     net_graph
-}
-
-fn arc_count(lines: &[Vec<usize>]) -> usize {
-    lines.iter().map(|l| l.len() - 1).sum()
 }
 
 fn add_arc_weights(mut net_graph: NetGraph, pts: &[Pt]) -> NetGraph {

@@ -1,5 +1,5 @@
 use super::build_graph;
-use simplegraph::{path_cost, Graph, GetGraphType, GraphVisitor};
+use simplegraph::{path_cost, GetGraphType, Graph, GraphVisitor};
 
 pub fn all_direct_path(mut net: build_graph::Network) -> build_graph::Network {
     net.graph = build_all_direct_path_graph(net.graph, &net.lines);
@@ -66,9 +66,7 @@ mod test {
         for (k, (_, v)) in expected.iter() {
             assert!(v, "{:?}", k);
         }
-
     }
-
 
     fn init_network(undirect: bool) -> build_graph::Network {
         let mut graph = if undirect {
