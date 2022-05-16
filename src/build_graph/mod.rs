@@ -1,11 +1,12 @@
-use petgraph::graph;
 use serde::Serialize;
+use simplegraph::AdjList;
 
 use crate::float_table::FloatMatrix;
 use crate::Curve;
 
 mod build_lines;
-mod lines_to_petgraph;
+mod check_connected_graph;
+mod lines_to_graph;
 mod point_factory;
 
 #[derive(Debug, Serialize)]
@@ -15,7 +16,7 @@ pub struct Network {
     pub graph: NetGraph,
 }
 
-pub type NetGraph = graph::UnGraph<f64, f64>;
+pub type NetGraph = AdjList<f64>;
 pub type Lines = Vec<Vec<usize>>;
 pub type Pt = (f64, f64);
 
@@ -29,5 +30,5 @@ pub fn build_network(
     intersections: &FloatMatrix<(usize, f64)>,
 ) -> Option<Network> {
     let (point_factory, lines) = build_lines::build_lines(curves, nodes, intersections);
-    lines_to_petgraph::build_graph(point_factory, lines)
+    lines_to_graph::build_graph(point_factory, lines)
 }

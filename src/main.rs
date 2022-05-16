@@ -1,7 +1,7 @@
 use flo_curves::bezier;
 use flo_curves::Coord2;
 
-use petgraph::dot;
+use simplegraph::dot;
 
 use serde::{Deserialize, Serialize};
 use structopt::StructOpt;
@@ -163,7 +163,7 @@ fn export_if_required(
     if let Some(base_name) = &base_name {
         let file_name = mk_file_name(base_name, id, "dot");
         let mut file = File::create(file_name)?;
-        write!(file, "{}", dot::Dot::new(&net.graph))?;
+        write!(file, "{}", dot::to_dot_source(&net.graph))?;
     }
 
     Ok(())

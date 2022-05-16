@@ -3,6 +3,7 @@ use super::MResult;
 use rand::prelude::*;
 use rand_distr;
 use serde::Deserialize;
+use simplegraph::Graph;
 
 #[derive(Deserialize)]
 pub struct StationWaitTimeConfig {
@@ -24,8 +25,6 @@ pub fn add_wait_time(mut net: Network, conf: &StationWaitTimeConfig) -> MResult<
 
 fn apply_wait_times(graph: &mut NetGraph, conf: &StationWaitTimeConfig) -> MResult<()> {
     let distr = conf.new_lognormal()?;
-    for nw in graph.node_weights_mut() {
-        *nw = distr.sample(&mut rand::thread_rng());
-    }
+    graph.update_all_nodes_weight(|_, _| distr.sample(&mut rand::thread_rng()));
     Ok(())
 }
