@@ -20,10 +20,10 @@ def load_file(file_path):
 def plot_points(points):
     xs = points[:, 0]
     ys = points[:, 1]
-    plt.scatter(xs, ys, color="k")
+    plt.scatter(xs, ys, color="k", zorder=1)
 
 def plot_line(x, y, color):
-    plt.plot(x, y, color=color)
+    plt.plot(x, y, color=color, zorder=0)
 
 def get_line_coords(point_x, point_y, line):
     line = np.array(line)
